@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>宝贝成长记录 - 时间轴</title>
+    
+    <!-- TailwindCSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        /* 自定义滚动条 */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        
+        .dark ::-webkit-scrollbar-thumb {
+            background: #475569;
+        }
+        
+        /* 平滑滚动 */
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        /* 时间轴线条 */
+        .timeline-line {
+            position: relative;
+        }
+        
+        .timeline-line::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(to bottom, #3b82f6, #8b5cf6, #ec4899);
+            transform: translateX(-50%);
+        }
+        
+        @media (max-width: 768px) {
+            .timeline-line::before {
+                left: 20px;
+            }
+        }
+        
+        /* 时间轴节点 */
+        .timeline-node {
+            position: relative;
+            z-index: 10;
+        }
+        
+        /* 卡片悬停效果 */
+        .timeline-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .timeline-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .dark .timeline-card:hover {
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+        }
+        
+        /* 淡入动画 */
+        .fade-in {
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+        
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* 按钮悬停效果 */
+        .btn-hover {
+            transition: all 0.2s ease-in-out;
+        }
+        
+        .btn-hover:hover {
+            transform: scale(1.05);
+        }
+        
+        /* 图片懒加载占位符 */
+        .img-placeholder {
+            background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+        }
+        
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        
+        /* 视频容器 */
+        .video-container {
+            position: relative;
+            width: 100%;
+            height: 0;
+            padding-bottom: 56.25%; /* 16:9 宽高比 */
+        }
+        
+        .video-container video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+    </style>
+    
+    <script>
+        // 主题切换配置
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+
+<body class="bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+    <!-- 导航栏 -->
+    <nav class="fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-700">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo -->
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-heart text-white text-sm"></i>
+                    </div>
+                    <h1 class="text-xl font-semibold text-gray-900 dark:text-white">宝贝成长记录</h1>
+                </div>
+                
+                <!-- 导航链接 -->
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="#timeline" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">时间轴</a>
+                    <a href="#gallery" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">相册</a>
+                    <a href="#milestones" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">里程碑</a>
+                </div>
+                
+                <!-- 主题切换按钮 -->
+                <button id="theme-toggle" class="btn-hover p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700">
+                    <i class="fas fa-sun dark:hidden"></i>
+                    <i class="fas fa-moon hidden dark:inline"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要内容 -->
+    <main class="pt-16">
+        <!-- 头部横幅 -->
+        <section class="relative bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-800 dark:via-gray-900 dark:to-gray-800 py-20">
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <div class="fade-in">
+                    <h2 class="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-6">
+                        记录每一个<span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">珍贵时刻</span>
+                    </h2>
+                    <p class="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto">
+                        见证宝贝的成长足迹，珍藏每一份美好回忆，让爱在时光中永恒绽放
+                    </p>
+                    <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                        <button class="btn-hover px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors">
+                            <i class="fas fa-play mr-2"></i>开始浏览
+                        </button>
+                        <button class="btn-hover px-8 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg font-medium transition-colors">
+                            <i class="fas fa-download mr-2"></i>下载相册
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 时间轴部分 -->
+        <section id="timeline" class="py-20 bg-white dark:bg-gray-900">
+            <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-16 fade-in">
+                    <h3 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">成长时间轴</h3>
+                    <p class="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+                        按时间顺序记录宝贝的成长历程，每一个瞬间都值得被珍藏
+                    </p>
+                </div>
+
+                <div class="timeline-line relative">
+                    <!-- 时间轴项目 1 -->
+                    <div class="fade-in mb-16 md:mb-20">
+                        <div class="flex flex-col md:flex-row items-center">
+                            <!-- 左侧内容 (桌面端) -->
+                            <div class="w-full md:w-5/12 md:pr-8 mb-8 md:mb-0">
+                                <div class="timeline-card bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-100 dark:border-gray-700">
+                                    <div class="flex items-center mb-4">
+                                        <div class="w-12 h-12 bg-gradient-to-br from-pink-500 to-rose-500 rounded-full flex items-center justify-center mr-4">
+                                            <i class="fas fa-baby text-white"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-lg font-semibold text-gray-900 dark:text-white">初来人世</h4>
+                                            <p class="text-sm text-gray-500 dark:text-gray-400">2023年3月15日</p>
+                                        </div>
+                                    </div>
+                                    <p class="text-gray-600 dark:text-gray-300 mb-4">
+                                        小天使降临到这个世界，体重3.2kg，身长50cm。第一次听到宝贝的哭声，那一刻整个世界都变得不同了。
+                                    </p>
+                                    <div class="flex flex-wrap gap-2">
+                                        <span class="px-3 py-1 bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 rounded-full text-sm">新生儿</span>
+                                        <span class="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full text-sm">第一天</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 中间节点 -->
+                            <div class="timeline-node flex-shrink-0 w-16 h-16 bg-gradient-to-br from-pink-500 to-rose-500 rounded-full flex items-center justify-center shadow-lg mb-8 md:mb-0">
+                                <i class="fas fa-star text-white text-lg"></i>
+                            </div>
+
+                            <!-- 右侧图片 -->
+                            <div class="w-full md:w-5/12 md:pl-8">
+                                <div class="timeline-card rounded-2xl overflow-hidden shadow-lg">
+                                    <div class="img-placeholder aspect-video bg-gradient-to-br from-pink-100 to-rose-100 dark:from-pink-900/20 dark:to-rose-900/20 flex items-center justify-center">
+                                        <i class="fas fa-image text-4xl text-gray-400 dark:text-gray-600"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 时间轴项目 2 -->
+                    <div class="fade-in mb-16 md:mb-20">
+                        <div class="flex flex-col md:flex-row-reverse items-center">
+                            <!-- 右侧内容 (桌面端) -->
+                            <div class="w-full md:w-5/12 md:pl-8 mb-8 md:mb-0">
+                                <div class="timeline-card bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-100 dark:border-gray-700">
+                                    <div class="flex items-center mb-4">
+                                        <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center mr-4">
+                                            <i class="fas fa-smile text-white"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-lg font-semibold text-gray-900 dark:text-white">第一次微笑</h4>
+                                            <p class="text-sm text-gray-500 dark:text-gray-400">2023年4月20日</p>
+                                        </div>
+                                    </div>
+                                    <p class="text-gray-600 dark:text-gray-300 mb-4">
+                                        宝贝第一次对我们露出了甜美的笑容！那个瞬间仿佛整个房间都被阳光照亮了，所有的疲惫都瞬间消失。
+                                    </p>
+                                    <div class="video-container rounded-lg overflow-hidden bg-gradient-to-br from-blue-100 to-cyan-100 dark:from-blue-900/20 dark:to-cyan-900/20">
+                                        <div class="absolute inset-0 flex items-center justify-center">
+                                            <div class="text-center">
+                                                <i class="fas fa-play-circle text-4xl text-blue-500 mb-2"></i>
+                                                <p class="text-sm text-gray-600 dark:text-gray-400">点击播放视频</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 中间节点 -->
+                            <div class="timeline-node flex-shrink-0 w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center shadow-lg mb-8 md:mb-0">
+                                <i class="fas fa-heart text-white text-lg"></i>
+                            </div>
+
+                            <!-- 左侧图片 -->
+                            <div class="w-full md:w-5/12 md:pr-8">
+                                <div class="timeline-card rounded-2xl overflow-hidden shadow-lg">
+                                    <div class="img-placeholder aspect-video bg-gradient-to-br from-blue-100 to-cyan-100 dark:from-blue-900/20 dark:to-cyan-900/20 flex items-center justify-center">
+                                        <i class="fas fa-camera text-4xl text-gray-400 dark:text-gray-600"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 时间轴项目 3 -->
+                    <div class="fade-in mb-16 md:mb-20">
+                        <div class="flex flex-col md:flex-row items-center">
+                            <!-- 左侧内容 -->
+                            <div class="w-full md:w-5/12 md:pr-8 mb-8 md:mb-0">
+                                <div class="timeline-card bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-100 dark:border-gray-700">
+                                    <div class="flex items-center mb-4">
+                                        <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full flex items-center justify-center mr-4">
+                                            <i class="fas fa-hand-paper text-white"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-lg font-semibold text-gray-900 dark:text-white">学会翻身</h4>
+                                            <p class="text-sm text-gray-500 dark:text-gray-400">2023年6月8日</p>
+                                        </div>
+                                    </div>
+                                    <p class="text-gray-600 dark:text-gray-300 mb-4">
+                                        今天宝贝成功从仰卧翻到了俯卧！看着小家伙努力的样子，我们都激动得不行。这是成长路上的重要一步。
+                                    </p>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div class="img-placeholder aspect-square bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg flex items-center justify-center">
+                                            <i class="fas fa-image text-2xl text-gray-400 dark:text-gray-600"></i>
+                                        </div>
+                                        <div class="img-placeholder aspect-square bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg flex items-center justify-center">
+                                            <i class="fas fa-image text-2xl text-gray-400 dark:text-gray-600"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 中间节点 -->
+                            <div class="timeline-node flex-shrink-0 w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full flex items-center justify-center shadow-lg mb-8 md:mb-0">
+                                <i class="fas fa-trophy text-white text-lg"></i>
+                            </div>
+
+                            <!-- 右侧内容 -->
+                            <div class="w-full md:w-5/12 md:pl-8">
+                                <div class="timeline-card bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/10 dark:to-emerald-900/10 rounded-2xl p-6 border border-green-200 dark:border-green-800">
+                                    <h5 class="font-semibold text-gray-900 dark:text-white mb-3">发育里程碑</h5>
+                                    <div class="space-y-3">
+                                        <div class="flex items-center">
+                                            <i class="fas fa-check-circle text-green-500 mr-3"></i>
+                                            <span class="text-gray-700 dark:text-gray-300">头部控制良好</span>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <i class="fas fa-check-circle text-green-500 mr-3"></i>
+                                            <span class="text-gray-700 dark:text-gray-300">能够翻身</span>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <i class="fas fa-clock text-yellow-500 mr-3"></i>
+                                            <span class="text-gray-700 dark:text-gray-300">开始尝试坐立</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 时间轴项目 4 -->
+                    <div class="fade-in">
+                        <div class="flex flex-col md:flex-row-reverse items-center">
+                            <!-- 右侧内容 -->
+                            <div class="w-full md:w-5/12 md:pl-8 mb-8 md:mb-0">
+                                <div class="timeline-card bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-100 dark:border-gray-700">
+                                    <div class="flex items-center mb-4">
+                                        <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mr-4">
+                                            <i class="fas fa-birthday-cake text-white"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-lg font-semibold text-gray-900 dark:text-white">六个月生日</h4>
+                                            <p class="text-sm text-gray-500 dark:text-gray-400">2023年9月15日</p>
+                                        </div>
+                                    </div>
+                                    <p class="text-gray-600 dark:text-gray-300 mb-4">
+                                        宝贝半岁啦！今天我们为小家伙举办了一个温馨的生日派对，邀请了爷爷奶奶一起庆祝这个特殊的日子。
+                                    </p>
+                                    <div class="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
+                                        <span><i class="fas fa-weight mr-1"></i>体重: 8.2kg</span>
+                                        <span><i class="fas fa-ruler-vertical mr-1"></i>身高: 68cm</span>
+                                        <span><i class="fas fa-tooth mr-1"></i>2颗小牙</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 中间节点 -->
+                            <div class="timeline-node flex-shrink-0 w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg mb-8 md:mb-0">
+                                <i class="fas fa-gift text-white text-lg"></i>
+                            </div>
+
+                            <!-- 左侧图片 -->
+                            <div class="w-full md:w-5/12 md:pr-8">
+                                <div class="timeline-card rounded-2xl overflow-hidden shadow-lg">
+                                    <div class="img-placeholder aspect-video bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20 flex items-center justify-center">
+                                        <i class="fas fa-birthday-cake text-4xl text-gray-400 dark:text-gray-600"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 统计数据部分 -->
+        <section class="py-16 bg-gray-50 dark:bg-gray-800">
+            <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
+                    <div class="text-center fade-in">
+                        <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-calendar-alt text-white text-xl"></i>
+                        </div>
+                        <div class="text-3xl font-bold text-gray-900 dark:text-white mb-2">186</div>
+                        <div class="text-gray-600 dark:text-gray-300">成长天数</div>
+                    </div>
+                    <div class="text-center fade-in">
+                        <div class="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-camera text-white text-xl"></i>
+                        </div>
+                        <div class="text-3xl font-bold text-gray-900 dark:text-white mb-2">342</div>
+                        <div class="text-gray-600 dark:text-gray-300">珍贵照片</div>
+                    </div>
+                    <div class="text-center fade-in">
+                        <div class="w-16 h-16 bg-gradient-to-br from-pink-500 to-rose-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-video text-white text-xl"></i>
+                        </div>
+                        <div class="text-3xl font-bold text-gray-900 dark:text-white mb-2">28</div>
+                        <div class="text-gray-600 dark:text-gray-300">成长视频</div>
+                    </div>
+                    <div class="text-center fade-in">
+                        <div class="w-16 h-16 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-trophy text-white text-xl"></i>
+                        </div>
+                        <div class="text-3xl font-bold text-gray-900 dark:text-white mb-2">12</div>
+                        <div class="text-gray-600 dark:text-gray-300">重要里程碑</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 py-12">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <div class="flex items-center justify-center mb-6">
+                <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center mr-3">
+                    <i class="fas fa-heart text-white text-sm"></i>
+                </div>
+                <span class="text-xl font-semibold text-gray-900 dark:text-white">宝贝成长记录</span>
+            </div>
+            <p class="text-gray-600 dark:text-gray-300 mb-4">
+                用爱记录每一个珍贵瞬间，让美好回忆永远绽放
+            </p>
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+                © 2023 宝贝成长记录. 用心制作，满怀爱意.
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        // 主题切换功能
+        const themeToggle = document.getElementById('theme-toggle');
+        const html = document.documentElement;
+        
+        // 检查系统主题偏好
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const savedTheme = localStorage.getItem('theme');
+        
+        // 初始化主题
+        if (savedTheme) {
+            html.classList.toggle('dark', savedTheme === 'dark');
+        } else {
+            html.classList.toggle('dark', prefersDark);
+        }
+        
+        // 主题切换事件
+        themeToggle.addEventListener('click', () => {
+            html.classList.toggle('dark');
+            const isDark = html.classList.contains('dark');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        });
+        
+        // 监听系统主题变化
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+            if (!localStorage.getItem('theme')) {
+                html.classList.toggle('dark', e.matches);
+            }
+        });
+        
+        // 滚动动画观察器
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+        
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.animationDelay = '0s';
+                    entry.target.classList.add('fade-in');
+                }
+            });
+        }, observerOptions);
+        
+        // 观察所有需要动画的元素
+        document.addEventListener('DOMContentLoaded', () => {
+            const animatedElements = document.querySelectorAll('.fade-in');
+            animatedElements.forEach((el, index) => {
+                el.style.animationDelay = `${index * 0.1}s`;
+                observer.observe(el);
+            });
+        });
+        
+        // 平滑滚动到锚点
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+        
+        // 懒加载图片
+        const imageObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const img = entry.target;
+                    if (img.dataset.src) {
+                        img.src = img.dataset.src;
+                        img.classList.remove('img-placeholder');
+                        imageObserver.unobserve(img);
+                    }
+                }
+            });
+        });
+        
+        // 观察所有懒加载图片
+        document.querySelectorAll('img[data-src]').forEach(img => {
+            imageObserver.observe(img);
+        });
+        
+        // 添加页面加载完成后的动画
+        window.addEventListener('load', () => {
+            document.body.classList.add('loaded');
+        });
+    </script>
+</body>
+</html>
